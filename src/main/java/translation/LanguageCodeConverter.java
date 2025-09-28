@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class provides the services of: <br/>
@@ -44,12 +45,12 @@ public class LanguageCodeConverter {
                 String line = iterator.next();
                 String[] split = line.split(",");
                 if (split.length == 2) {
-                    String language = split[0];
-                    String code = split[1];
-                    languageCodeToLanguage.put(language, code);
+                    String language = split[0].trim();
+                    String code = split[1].trim();
+                    languageCodeToLanguage.put(code, language);
+                    languageToLanguageCode.put(language, code);
                 }
             }
-
         } catch (IOException | URISyntaxException ex) {
             throw new RuntimeException(ex);
         }
@@ -71,6 +72,13 @@ public class LanguageCodeConverter {
      */
     public String fromLanguage(String language) {
         return languageToLanguageCode.get(language);
+    }
+    /**
+     * Return all the language names currently loaded.
+     * @return a set of language names
+     */
+    public Set<String> getLanguageNames() {
+        return languageToLanguageCode.keySet();
     }
 
     /**

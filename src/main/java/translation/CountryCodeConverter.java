@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class provides the service of converting country codes to their names and back.
@@ -69,7 +70,9 @@ public class CountryCodeConverter {
     public String fromCountry(String country) {
         return countryToCountryCode.get(country.toLowerCase());
     }
-
+    public Set<String> getCountryNames() {
+        return countryToCountryCode.keySet(); // returns lowercased names
+    }
     /**
      * Return how many countries are included in this country code converter.
      * @return how many countries are included in this country code converter.
