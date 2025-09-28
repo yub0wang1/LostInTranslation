@@ -4,88 +4,88 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-/**
- * This class provides the services of: <br/>
- * - converting language codes to their names <br/>
- * - converting language names to their codes
- */
 public class LanguageCodeConverter {
+    private final Map<String, String> languageCodeToName = new HashMap<>();
+    private final Map<String, String> languageNameToCode = new HashMap<>();
+    private final Set<String> originalLanguageNames = new HashSet<>();
 
-    private final Map<String, String> languageCodeToLanguage = new HashMap<>();
-    private final Map<String, String> languageToLanguageCode = new HashMap<>();
-
-    /**
-     * Default constructor that loads the language codes from "language-codes.txt"
-     * in the resources folder.
-     */
     public LanguageCodeConverter() {
         this("language-codes.txt");
     }
 
-    /**
-     * Overloaded constructor that allows us to specify the filename to load the language code data from.
-     * @param filename the name of the file in the resources folder to load the data from
-     * @throws RuntimeException if the resources file can't be loaded properly
-     */
     public LanguageCodeConverter(String filename) {
+        if (filename == null || filename.trim().isEmpty()) {
+            throw new IllegalArgumentException("Filename cannot be null or empty");
+        }
 
         try {
-            List<String> lines = Files.readAllLines(Paths.get(getClass()
-                    .getClassLoader().getResource(filename).toURI()));
-
-            Iterator<String> iterator = lines.iterator();
-            iterator.next(); // skip the first line
-            while (iterator.hasNext()) {
-                String line = iterator.next();
-                String[] split = line.split(",");
-                if (split.length == 2) {
-                    String language = split[0].trim();
-                    String code = split[1].trim();
-                    languageCodeToLanguage.put(code, language);
-                    languageToLanguageCode.put(language, code);
-                }
-            }
+            loadLanguageData(filename);
         } catch (IOException | URISyntaxException ex) {
-            throw new RuntimeException(ex);
+            throw new RuntimeException("Failed to load language code data from: " + filename, ex);
         }
     }
 
-    /**
-     * Return the name of the language for the given language code.
-     * @param code the 2-letter language code
-     * @return the name of the language corresponding to the code
-     */
+    private void loadLanguageData(String filename) throws IOException, URISyntaxException {
+        var resource = getClass().getClassLoader().getResource(filename);
+        if (resource == null) {
+            throw new IOException("Resource file not found: " + filename);
+        }
+
+        List<String> lines = Files.readAllLines(Paths.get(resource.toURI()));
+
+        if (lines.isEmpty()) {
+            throw new IOException("File is empty: " + filename);
+        }
+
+        // Skip header and process each line
+        for (int i = 1; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.isEmpty()) continue;
+            processLanguageLine(line, i);
+        }
+    }
+
+    private void processLanguageLine(String line, int lineNumber) {
+        String[] parts = line.split("\t");
+        if (parts.length < 2) {
+            System.err.println("Warning: Skipping invalid line " + lineNumber + " - expected at least 2 columns: " + line);
+            return;
+        }
+
+        String languageName = parts[0].trim();
+        String languageCode = parts[1].trim();
+
+        if (!languageCode.matches("[a-z]{2,3}(-[a-z]{2,3})?")) {
+            System.err.println("Warning: Skipping invalid language code format at line " + lineNumber + ": " + languageCode);
+            return;
+        }
+
+        languageCodeToName.put(languageCode, languageName.toLowerCase());
+        languageNameToCode.put(languageName.toLowerCase(), languageCode);
+        originalLanguageNames.add(languageName);
+    }
+
     public String fromLanguageCode(String code) {
-        return languageCodeToLanguage.get(code);
+        if (code == null) return null;
+        return languageCodeToName.get(code.toLowerCase());
     }
 
-    /**
-     * Return the code of the language for the given language name.
-     * @param language the name of the language
-     * @return the 2-letter code of the language
-     */
     public String fromLanguage(String language) {
-        return languageToLanguageCode.get(language);
-    }
-    /**
-     * Return all the language names currently loaded.
-     * @return a set of language names
-     */
-    public Set<String> getLanguageNames() {
-        return languageToLanguageCode.keySet();
+        if (language == null) return null;
+        return languageNameToCode.get(language.toLowerCase());
     }
 
-    /**
-     * Return how many languages are included in this language code converter.
-     * @return how many languages are included in this language code converter.
-     */
+    public Set<String> getLanguageNames() {
+        return Collections.unmodifiableSet(originalLanguageNames);
+    }
+
+    public Set<String> getLanguageCodes() {
+        return Collections.unmodifiableSet(languageCodeToName.keySet());
+    }
+
     public int getNumLanguages() {
-        return languageCodeToLanguage.size();
+        return originalLanguageNames.size();
     }
 }

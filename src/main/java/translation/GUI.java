@@ -46,10 +46,10 @@ public class GUI {
                     resultLabel.setText(" ");
                     return;
                 }
-                String langCode = converter.fromLanguage(langName);       // e.g., "fr"
-                String countryCode = countryConverter.fromCountry(countryName); // e.g., "DEU"
+                String langCode = converter.fromLanguage(langName.toLowerCase());       // e.g., "fr"
+                String countryCode = countryConverter.fromCountry(countryName.toLowerCase()); // e.g., "DEU"
                 String translated = translator.translate(countryCode, langCode);
-                resultLabel.setText(translated != null ? translated : "(no translation found)");
+                resultLabel.setText(translated != null ? translated : "No translation found!");
             };
 
             // Update when user changes either selection

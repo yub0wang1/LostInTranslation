@@ -21,14 +21,14 @@ Bengali	bn
 Bislama	bi
 Bosnian	bs
 Breton	br
-Bulgarian	bg
+Bulgarian bg
 Burmese	my
-Catalan, Valencian	ca
-Chamorro	ch
+Catalan, Valencian ca
+Chamorro ch
 Chechen	ce
 Chichewa, Chewa, Nyanja	ny
 Chinese	zh
-Chinese (Taiwan)	zh-tw
+Chinese (Taiwan) zh-tw
 Church Slavonic, Old Slavonic, Old Church Slavonic	cu
 Chuvash	cv
 Cornish	kw

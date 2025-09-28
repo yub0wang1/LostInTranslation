@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -19,11 +21,16 @@ import org.json.JSONObject;
 public class JSONTranslator implements Translator {
 
     private final List<String> languageCodes = new ArrayList<>();
-
     private final List<String> countryCodes = new ArrayList<>();
-
     // the key used is "countryCode-languageCode"; the value is the translated country name
     private final Map<String, String> translations = new HashMap<>();
+
+    // Constants for JSON field names
+    private static final String ID_FIELD = "id";
+    private static final String ALPHA2_FIELD = "alpha2";
+    private static final String ALPHA3_FIELD = "alpha3";
+    private static final Set<String> EXCLUDED_KEYS = Set.of(ID_FIELD, ALPHA2_FIELD, ALPHA3_FIELD);
+
     /**
      * Construct a JSONTranslator using data from the sample.json resources file.
      */
@@ -37,40 +44,66 @@ public class JSONTranslator implements Translator {
      * @throws RuntimeException if the resource file can't be loaded properly
      */
     public JSONTranslator(String filename) {
-        // read the file to get the data to populate things...
-        try {
-
-            String jsonString = Files.readString(Paths.get(getClass().getClassLoader().getResource(filename).toURI()));
-
-            JSONArray jsonArray = new JSONArray(jsonString);
-
-            for (int i = 0; i < jsonArray.length(); i++) {
-
-                JSONObject countryData = jsonArray.getJSONObject(i);
-                String countryCode = countryData.getString("alpha3");
-
-                List<String> languages = new ArrayList<>();
-
-                countryCodes.add(countryCode);
-
-                // iterate through the other keys to get the information that we need
-                for (String key : countryData.keySet()) {
-                    if (!key.equals("id") && !key.equals("alpha2") && !key.equals("alpha3")) {
-                        String languageCode = key;
-                        translations.put(countryCode + "-" + languageCode, countryData.getString(key));
-
-                        if (!languages.contains(languageCode)) {
-                            languages.add(languageCode);
-                        }
-                        if (!languageCodes.contains(languageCode)) {
-                            languageCodes.add(languageCode);
-                        }
-                    }
-                }
-            }
+        if (filename == null || filename.trim().isEmpty()) {
+            throw new IllegalArgumentException("Filename cannot be null or empty");
         }
-        catch (IOException | URISyntaxException ex) {
-            throw new RuntimeException(ex);
+
+        try {
+            loadAndParseData(filename);
+        } catch (IOException | URISyntaxException ex) {
+            throw new RuntimeException("Failed to load resource file: " + filename, ex);
+        }
+    }
+
+    private void loadAndParseData(String filename) throws IOException, URISyntaxException {
+        // Check if resource exists
+        var resource = getClass().getClassLoader().getResource(filename);
+        if (resource == null) {
+            throw new IOException("Resource file not found: " + filename);
+        }
+
+        // Read the file
+        String jsonString = Files.readString(Paths.get(resource.toURI()));
+        JSONArray jsonArray = new JSONArray(jsonString);
+
+        parseCountryData(jsonArray);
+    }
+
+    private void parseCountryData(JSONArray jsonArray) {
+        Set<String> uniqueLanguageCodes = new HashSet<>();
+
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject countryData = jsonArray.getJSONObject(i);
+
+            // Validate required fields
+            if (!countryData.has(ALPHA3_FIELD)) {
+                throw new RuntimeException("Missing required field 'alpha3' in country data at index " + i);
+            }
+
+            String countryCode = countryData.getString(ALPHA3_FIELD);
+            countryCodes.add(countryCode);
+
+            // Process translations for this country
+            processCountryTranslations(countryData, countryCode, uniqueLanguageCodes);
+        }
+
+        // Add all unique language codes at the end
+        languageCodes.addAll(uniqueLanguageCodes);
+    }
+
+    private void processCountryTranslations(JSONObject countryData, String countryCode, Set<String> uniqueLanguageCodes) {
+        for (String key : countryData.keySet()) {
+            if (!EXCLUDED_KEYS.contains(key)) {
+                String languageCode = key;
+                String translation = countryData.getString(key);
+
+                // Store the translation
+                String translationKey = countryCode + "-" + languageCode;
+                translations.put(translationKey, translation);
+
+                // Track unique language codes
+                uniqueLanguageCodes.add(languageCode);
+            }
         }
     }
 
@@ -86,6 +119,9 @@ public class JSONTranslator implements Translator {
 
     @Override
     public String translate(String countryCode, String languageCode) {
+        if (countryCode == null || languageCode == null) {
+            return null;
+        }
         return translations.get(countryCode + "-" + languageCode);
     }
 }
